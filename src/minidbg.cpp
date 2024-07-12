@@ -1,18 +1,23 @@
 #include <iostream>
 #include <unistd.h>
 #include <sys/ptrace.h>
+#include <sys/wait.h>
 
-class debugger {
-    public:
-        debugger (std::string prog_name, pid_t pid)
-            : m_prog_name{std::move(prog_name)}, m_pid{pid} {}
+#include "linenoise.h"
+#include "debugger.hpp"
 
-        void run();
+void debugger::run() {
+    int wait_status;
+    auto options = 0;
+    waitpid(m_pid, &wait_status, options);
 
-    private:
-        std::string m_prog_name;
-        pid_t m_pid;
-};
+    char *line = nullptr;
+    while ((line = linenoise("minidbg> ")) != nullptr) {
+        handle_command(line);
+        linenoiseHistoryAdd(line);
+        linenoiseFree(line);
+    }
+}
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
