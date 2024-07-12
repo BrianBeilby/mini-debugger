@@ -8,6 +8,7 @@
 #include "linenoise.h"
 
 #include "debugger.hpp"
+#include "breakpoint.hpp"
 
 using namespace minidbg;
 
@@ -58,6 +59,16 @@ void debugger::continue_execution() {
     int wait_status;
     auto options = 0;
     waitpid(m_pid, &wait_status, options);
+}
+
+void breakpoint::enable() {
+    auto data = ptrace(PTRACE_PEEKDATA, m_pid, m_addr, nullptr);
+    m_saved_data = static_cast<uint8_t>(data & 0xff);   // Save bottom byte
+    uint64_t int3 = 0xcc;
+    uint64_t data_with_int3 = ((data & ~0xff) | int3);  // Set bottom byte to 0xcc
+    ptrace(PTRACE_POKEDATA, m_pid, m_addr, data_with_int3);
+
+    m_enabled = true;
 }
 
 int main(int argc, char* argv[]) {
