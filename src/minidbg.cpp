@@ -1,6 +1,7 @@
 #include <vector>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
+#include <sys/personality.h>
 #include <unistd.h>
 #include <sstream>
 #include <iostream>
@@ -8,29 +9,15 @@
 #include "linenoise.h"
 
 #include "debugger.hpp"
-#include "breakpoint.hpp"
 
 using namespace minidbg;
-
-void debugger::run() {
-    int wait_status;
-    auto options = 0;
-    waitpid(m_pid, &wait_status, options);
-
-    char *line = nullptr;
-    while ((line = linenoise("minidbg> ")) != nullptr) {
-        handle_command(line);
-        linenoiseHistoryAdd(line);
-        linenoiseFree(line);
-    }
-}
 
 std::vector<std::string> split(const std::string &s, char delimiter) {
     std::vector<std::string> out{};
     std::stringstream ss {s};
     std::string item;
 
-    while (std::getline(ss, item, delimiter)) {
+    while (std::getline(ss,item,delimiter)) {
         out.push_back(item);
     }
 
@@ -43,13 +30,38 @@ bool is_prefix(const std::string& s, const std::string& of) {
 }
 
 void debugger::handle_command(const std::string& line) {
-    auto args = split(line, ' ');
+    auto args = split(line,' ');
     auto command = args[0];
 
-    if (is_prefix(command, "continue")) {
+    if (is_prefix(command, "cont")) {
         continue_execution();
-    } else {
+    }
+    else if(is_prefix(command, "break")) {
+        std::string addr {args[1], 2}; //naively assume that the user has written 0xADDRESS
+        set_breakpoint_at_address(std::stol(addr, 0, 16));
+    }
+    else {
         std::cerr << "Unknown command\n";
+    }
+}
+
+void debugger::set_breakpoint_at_address(std::intptr_t addr) {
+    std::cout << "Set breakpoint at address 0x" << std::hex << addr << std::endl;
+    breakpoint bp {m_pid, addr};
+    bp.enable();
+    m_breakpoints[addr] = bp;
+}
+
+void debugger::run() {
+    int wait_status;
+    auto options = 0;
+    waitpid(m_pid, &wait_status, options);
+
+    char* line = nullptr;
+    while((line = linenoise("minidbg> ")) != nullptr) {
+        handle_command(line);
+        linenoiseHistoryAdd(line);
+        linenoiseFree(line);
     }
 }
 
@@ -61,14 +73,12 @@ void debugger::continue_execution() {
     waitpid(m_pid, &wait_status, options);
 }
 
-void breakpoint::enable() {
-    auto data = ptrace(PTRACE_PEEKDATA, m_pid, m_addr, nullptr);
-    m_saved_data = static_cast<uint8_t>(data & 0xff);   // Save bottom byte
-    uint64_t int3 = 0xcc;
-    uint64_t data_with_int3 = ((data & ~0xff) | int3);  // Set bottom byte to 0xcc
-    ptrace(PTRACE_POKEDATA, m_pid, m_addr, data_with_int3);
-
-    m_enabled = true;
+void execute_debugee (const std::string& prog_name) {
+    if (ptrace(PTRACE_TRACEME, 0, 0, 0) < 0) {
+        std::cerr << "Error in ptrace\n";
+        return;
+    }
+    execl(prog_name.c_str(), prog_name.c_str(), nullptr);
 }
 
 int main(int argc, char* argv[]) {
@@ -81,11 +91,12 @@ int main(int argc, char* argv[]) {
 
     auto pid = fork();
     if (pid == 0) {
-        // Child process, execute debugee
-        ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
-        execl(prog, prog, nullptr);
-    } else if (pid >= 1) {
-        // Parent process, execute debugger
+        //child
+        personality(ADDR_NO_RANDOMIZE);
+        execute_debugee(prog);
+    }
+    else if (pid >= 1)  {
+        //parent
         std::cout << "Started debugging process " << pid << '\n';
         debugger dbg{prog, pid};
         dbg.run();
