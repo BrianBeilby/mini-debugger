@@ -52,6 +52,14 @@ void debugger::handle_command(const std::string& line) {
     }
 }
 
+void debugger::continue_execution() {
+    ptrace(PTRACE_CONT, m_pid, nullptr, nullptr);
+
+    int wait_status;
+    auto options = 0;
+    waitpid(m_pid, &wait_status, options);
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cerr << "Program name not specified";
