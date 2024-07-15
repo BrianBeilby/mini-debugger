@@ -54,9 +54,28 @@ void debugger::handle_command(const std::string& line) {
             set_register_value(m_pid, get_register_from_name(args[2]), std::stol(val, 0, 16));
         }
     }
+    else if (is_prefix(command, "memory")) {
+        std::string addr {args[2], 2};      // Assume 0xADDRESS
+
+        if (is_prefix(args[1], "read")) {
+            std::cout << std::hex << read_memory(std::stol(addr, 0, 16)) << std::endl;
+        }
+        if (is_prefix(args[1], "write")) {
+            std::string val {args[3], 2};   // Assume 0xVAL
+            write_memory(std::stol(addr, 0, 16), std::stol(val, 0, 16));
+        }
+    }
     else {
         std::cerr << "Unknown command\n";
     }
+}
+
+uint64_t debugger::read_memory(uint64_t address) {
+    return ptrace(PTRACE_PEEKDATA, m_pid, address, nullptr);
+}
+
+void debugger::write_memory(uint64_t address, uint64_t value) {
+    ptrace(PTRACE_PEEKDATA, m_pid, address, value);
 }
 
 void debugger::set_breakpoint_at_address(std::intptr_t addr) {
