@@ -152,6 +152,20 @@ void debugger::dump_registers() {
     }
 }
 
+dwarf::die debugger::get_function_from_pc(uint64_t pc) {
+    for (auto &cu : m_dwarf.compilation_units()) {
+        if (die_pc_range(cu.root()).contains(pc)) {
+            for (const auto& die : cu.root()) {
+                if (die.tag == dwarf::DW_TAG::subprogram) {
+                    return die;
+                }
+            }
+        }
+    }
+
+    throw std::out_of_range{"Cannot find function"};
+}
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cerr << "Program name not specified";
