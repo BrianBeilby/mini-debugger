@@ -5,10 +5,12 @@
 #include <unistd.h>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 
 #include "linenoise.h"
 
 #include "debugger.hpp"
+#include "registers.hpp"
 
 using namespace minidbg;
 
@@ -79,6 +81,13 @@ void execute_debugee (const std::string& prog_name) {
         return;
     }
     execl(prog_name.c_str(), prog_name.c_str(), nullptr);
+}
+
+void debugger::dump_registers() {
+    for (const auto& rd : g_register_descriptors) {
+        std::cout << rd.name << " 0x"
+                  << std::setfill('0') << std::setw(16) << std::hex << get_register_value(m_pid, rd.r) << std::endl;
+    }
 }
 
 int main(int argc, char* argv[]) {
