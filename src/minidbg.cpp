@@ -4,8 +4,14 @@
 #include <sys/personality.h>
 #include <unistd.h>
 #include <sstream>
+#include <fstream>
 #include <iostream>
 #include <iomanip>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 #include "linenoise.h"
 
@@ -111,6 +117,14 @@ void debugger::step_over_breakpoint() {
     }
 }
 
+void debugger::initialise_load_address() {
+    // If this is a dynamic library (e.g. PIE)
+    if (m_elf.get_hdr().type == elf::et::dyn) {
+        // The load address is found in /proc/&lt;pid&gt;/maps
+        std::ifstream map("/proc" + std::to_string(m_pid) + "/maps");
+    }
+}
+
 void debugger::set_breakpoint_at_address(std::intptr_t addr) {
     std::cout << "Set breakpoint at address 0x" << std::hex << addr << std::endl;
     breakpoint bp {m_pid, addr};
@@ -119,9 +133,8 @@ void debugger::set_breakpoint_at_address(std::intptr_t addr) {
 }
 
 void debugger::run() {
-    int wait_status;
-    auto options = 0;
-    waitpid(m_pid, &wait_status, options);
+    wait_for_signal();
+    initialise_load_address();
 
     char* line = nullptr;
     while((line = linenoise("minidbg> ")) != nullptr) {
