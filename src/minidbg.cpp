@@ -175,6 +175,12 @@ void debugger::print_source(const std::string& file_name, unsigned line, unsigne
     std::cout << std::endl;
 }
 
+siginfo_t debugger::get_signal_info() {
+    siginfo_t info;
+    ptrace(PTRACE_GETSIGINFO, m_pid, nullptr, &info);
+    return info;
+}
+
 void debugger::run() {
     wait_for_signal();
     initialise_load_address();
