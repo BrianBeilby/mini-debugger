@@ -92,10 +92,44 @@ void debugger::set_pc(uint64_t pc) {
     set_register_value(m_pid, reg::rip, pc);
 }
 
+void debugger::handle_sigtrap(siginfo_t info) {
+    switch (info.si_code) {
+        // One of these will be set if a breakpoint was hit
+        case SI_KERNEL:
+        case TRAP_BRKPT:
+        {
+            set_pc(get_pc() - 1); // Put the pc back where it should be
+            std::cout << "Hit breakpoint at address 0x" << std::hex << get_pc() << std::endl;
+            auto offset_pc = offset_load_address(get_pc());     // Remember to offset the pc for querying DWARF
+            auto line_entry = get_line_entry_from_pc(offset_pc);
+            print_source(line_entry->file->path, line_entry->line);
+            return;
+        }
+        // This will be set if the signal was sent by single stepping
+        case TRAP_TRACE:
+            return;
+        default:
+            std::cout << "Unknown SIGTRAP code " << info.si_code << std::endl;
+    }
+}
+
 void debugger::wait_for_signal() {
     int wait_status;
     auto options = 0;
     waitpid(m_pid, &wait_status, options);
+
+    auto siginfo = get_signal_info();
+
+    switch (siginfo.si_signo) {
+        case SIGTRAP:
+            handle_sigtrap(siginfo);
+            break;
+        case SIGSEGV:
+            std::cout << "Yay, segfault. Reason: " << siginfo.si_code << std::endl;
+            break;
+        default:
+            std::cout << "Got signal " << strsignal(siginfo.si_signo) << std::endl;
+    }
 }
 
 void debugger::step_over_breakpoint() {
