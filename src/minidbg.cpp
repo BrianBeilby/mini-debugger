@@ -122,6 +122,12 @@ void debugger::initialise_load_address() {
     if (m_elf.get_hdr().type == elf::et::dyn) {
         // The load address is found in /proc/&lt;pid&gt;/maps
         std::ifstream map("/proc" + std::to_string(m_pid) + "/maps");
+
+        // Read the first address from the file
+        std::string addr;
+        std::getline(map, addr, '-');
+
+        m_load_address = std::stoi(addr, 0, 16);
     }
 }
 
