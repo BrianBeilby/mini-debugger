@@ -25,6 +25,7 @@ namespace minidbg {
         void run();
         void set_breakpoint_at_address(std::intptr_t addr);
         void dump_registers();
+        void print_source(const std::string& file_name, unsigned line, unsigned n_lines_context=2);
 
     private:
         void handle_command(const std::string& line);
@@ -38,6 +39,7 @@ namespace minidbg {
         auto get_function_from_pc(uint64_t pc) -> dwarf::die;
         auto get_line_entry_from_pc(uint64_t pc) -> dwarf::line_table::iterator;
         void initialise_load_address();
+        uint64_t offset_load_address(uint64_t addr);
         
         std::string m_prog_name;
         pid_t m_pid;
