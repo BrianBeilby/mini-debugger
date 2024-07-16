@@ -41,6 +41,7 @@ namespace minidbg {
         void initialise_load_address();
         uint64_t offset_load_address(uint64_t addr);
         auto get_signal_info() -> siginfo_t;
+        void handle_sigtrap(siginfo_t info);
         
         std::string m_prog_name;
         pid_t m_pid;
