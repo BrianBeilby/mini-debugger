@@ -40,6 +40,7 @@ namespace minidbg {
         auto get_line_entry_from_pc(uint64_t pc) -> dwarf::line_table::iterator;
         void initialise_load_address();
         uint64_t offset_load_address(uint64_t addr);
+        auto get_signal_info() -> siginfo_t;
         
         std::string m_prog_name;
         pid_t m_pid;
