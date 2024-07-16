@@ -131,11 +131,48 @@ void debugger::initialise_load_address() {
     }
 }
 
+uint64_t debugger::offset_load_address(uint64_t addr) {
+    return addr - m_load_address;
+}
+
 void debugger::set_breakpoint_at_address(std::intptr_t addr) {
     std::cout << "Set breakpoint at address 0x" << std::hex << addr << std::endl;
     breakpoint bp {m_pid, addr};
     bp.enable();
     m_breakpoints[addr] = bp;
+}
+
+void debugger::print_source(const std::string& file_name, unsigned line, unsigned n_lines_context) {
+    std::ifstream file {file_name};
+
+    // Work out a window around the desired line
+    auto start_line = line <= n_lines_context ? 1 : line - n_lines_context;
+    auto end_line = line + n_lines_context + (line < n_lines_context ? n_lines_context - line : 0) + 1;
+
+    char c{};
+    auto current_line = 1u;
+    // Skip lines up until start_line
+    while (current_line != start_line && file.get(c)) {
+        if (c == '\n') {
+            ++current_line;
+        }
+    }
+
+    // Output cursor if we're at the current line
+    std::cout << (current_line == line ? "> " : "  ");
+
+    // Write lines up until end_line
+    while (current_line <= end_line && file.get(c)) {
+        std::cout << c;
+        if (c == '\n') {
+            ++current_line;
+            // Out put cursor if we're at the current line
+            std::cout << (current_line == line ? "> " : "  ");
+        }
+    }
+
+    // Write newline to make sure that the stream is flushed properly
+    std::cout << std::endl;
 }
 
 void debugger::run() {
