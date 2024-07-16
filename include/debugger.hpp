@@ -37,12 +37,14 @@ namespace minidbg {
         void wait_for_signal();
         auto get_function_from_pc(uint64_t pc) -> dwarf::die;
         auto get_line_entry_from_pc(uint64_t pc) -> dwarf::line_table::iterator;
+        void initialise_load_address();
         
         std::string m_prog_name;
         pid_t m_pid;
         std::unordered_map<std::intptr_t,breakpoint> m_breakpoints;
         dwarf::dwarf m_dwarf;
         elf::elf m_elf;
+        uint64_t m_load_address = 0;
     };
 }
 
