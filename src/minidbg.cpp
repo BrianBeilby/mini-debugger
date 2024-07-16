@@ -133,16 +133,9 @@ void debugger::wait_for_signal() {
 }
 
 void debugger::step_over_breakpoint() {
-    // - 1 because execution will go past the breakpoint
-    auto possible_breakpoint_location = get_pc() - 1;
-
-    if (m_breakpoints.count(possible_breakpoint_location)) {
-        auto& bp = m_breakpoints[possible_breakpoint_location];
-
+    if (m_breakpoints.count(get_pc())) {
+        auto& bp = m_breakpoints[get_pc()];
         if (bp.is_enabled()) {
-            auto previous_instruction_address = possible_breakpoint_location;
-            set_pc(previous_instruction_address);
-
             bp.disable();
             ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
             wait_for_signal();
