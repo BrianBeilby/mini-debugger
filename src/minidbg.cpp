@@ -76,6 +76,15 @@ void debugger::handle_command(const std::string& line) {
         auto line_entry = get_line_entry_from_pc(get_pc());
         print_source(line_entry->file->path, line_entry->line);
     }
+    else if (is_prefix(command, "step")) {
+        step_in();
+    }
+    else if (is_prefix(command, "next")) {
+        step_over();
+    }
+    else if (is_prefix(command, "finish")) {
+        step_out();
+    }
     else {
         std::cerr << "Unknown command\n";
     }
@@ -203,6 +212,39 @@ void debugger::step_in() {
     print_source(line_entry->file->path, line_entry->line);
 }
 
+void debugger::step_over() {
+    auto func = get_function_from_pc(get_offset_pc());
+    auto func_entry = at_low_pc(func);
+    auto func_end = at_high_pc(func);
+
+    auto line = get_line_entry_from_pc(func_entry);
+    auto start_line = get_line_entry_from_pc(get_offset_pc());
+
+    std::vector<std::intptr_t> to_delete{};
+
+    while (line->address < func_end) {
+        auto load_address = offset_dwarf_address(line->address);
+        if (line->address != start_line->address && !m_breakpoints.count(load_address)) {
+            set_breakpoint_at_address(load_address);
+            to_delete.push_back(load_address);
+        }
+        ++line;
+    }
+
+    auto frame_pointer = get_register_value(m_pid, reg::rbp);
+    auto return_address = read_memory(frame_pointer + 8);
+    if (!m_breakpoints.count(return_address)) {
+        set_breakpoint_at_address(return_address);
+        to_delete.push_back(return_address);
+    }
+
+    continue_execution();
+
+    for (auto addr : to_delete) {
+        remove_breakpoint(addr);
+    }
+}
+
 void debugger::initialise_load_address() {
     // If this is a dynamic library (e.g. PIE)
     if (m_elf.get_hdr().type == elf::et::dyn) {
@@ -219,6 +261,10 @@ void debugger::initialise_load_address() {
 
 uint64_t debugger::offset_load_address(uint64_t addr) {
     return addr - m_load_address;
+}
+
+uint64_t debugger::offset_dwarf_address(uint64_t addr) {
+    return addr + m_load_address;
 }
 
 void debugger::set_breakpoint_at_address(std::intptr_t addr) {
