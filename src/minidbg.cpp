@@ -144,6 +144,21 @@ void debugger::step_over_breakpoint() {
     }
 }
 
+void debugger::single_step_instruction() {
+    ptrace(PTRACE_SINGLESTEP, m_pid, nullptr, nullptr);
+    wait_for_signal();
+}
+
+void debugger::single_step_instruction_with_breakpoint_check() {
+    // First, check to see if we need to disable and enable a breakpoint
+    if (m_breakpoints.count(get_pc())) {
+        step_over_breakpoint();
+    }
+    else {
+        single_step_instruction();
+    }
+}
+
 void debugger::initialise_load_address() {
     // If this is a dynamic library (e.g. PIE)
     if (m_elf.get_hdr().type == elf::et::dyn) {
