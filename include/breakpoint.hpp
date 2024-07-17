@@ -3,7 +3,6 @@
 
 #include <cstdint>
 #include <sys/ptrace.h>
-#include <sys/types.h>
 
 namespace minidbg {
     class breakpoint {
