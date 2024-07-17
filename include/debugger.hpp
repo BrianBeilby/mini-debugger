@@ -28,6 +28,8 @@ namespace minidbg {
         void print_source(const std::string& file_name, unsigned line, unsigned n_lines_context=2);
         void single_step_instruction();
         void single_step_instruction_with_breakpoint_check();
+        void step_out();
+        void remove_breakpoint(std::intptr_t addr);
 
     private:
         void handle_command(const std::string& line);
