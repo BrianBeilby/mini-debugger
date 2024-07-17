@@ -30,6 +30,7 @@ namespace minidbg {
         void single_step_instruction_with_breakpoint_check();
         void step_out();
         void step_in();
+        void step_over();
         void remove_breakpoint(std::intptr_t addr);
 
     private:
@@ -46,6 +47,7 @@ namespace minidbg {
         auto get_line_entry_from_pc(uint64_t pc) -> dwarf::line_table::iterator;
         void initialise_load_address();
         uint64_t offset_load_address(uint64_t addr);
+        uint64_t offset_dwarf_address(uint64_t addr);
         auto get_signal_info() -> siginfo_t;
         void handle_sigtrap(siginfo_t info);
         
