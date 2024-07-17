@@ -71,6 +71,11 @@ void debugger::handle_command(const std::string& line) {
             write_memory(std::stol(addr, 0, 16), std::stol(val, 0, 16));
         }
     }
+    else if (is_prefix(command, "stepi")) {
+        single_step_instruction_with_breakpoint_check();
+        auto line_entry = get_line_entry_from_pc(get_pc());
+        print_source(line_entry->file->path, line_entry->line);
+    }
     else {
         std::cerr << "Unknown command\n";
     }
@@ -132,6 +137,13 @@ void debugger::wait_for_signal() {
     }
 }
 
+void debugger::remove_breakpoint(std::intptr_t addr) {
+    if (m_breakpoints.at(addr).is_enabled()) {
+        m_breakpoints.at(addr).disable();
+    }
+    m_breakpoints.erase(addr);
+}
+
 void debugger::step_over_breakpoint() {
     if (m_breakpoints.count(get_pc())) {
         auto& bp = m_breakpoints[get_pc()];
@@ -156,6 +168,23 @@ void debugger::single_step_instruction_with_breakpoint_check() {
     }
     else {
         single_step_instruction();
+    }
+}
+
+void debugger::step_out() {
+    auto frame_pointer = get_register_value(m_pid, reg::rbp);
+    auto return_address = read_memory(frame_pointer + 8);
+
+    bool should_remove_breakpoint = false;
+    if (!m_breakpoints.count(return_address)) {
+        set_breakpoint_at_address(return_address);
+        should_remove_breakpoint = true;
+    }
+
+    continue_execution();
+
+    if (should_remove_breakpoint) {
+        remove_breakpoint(return_address);
     }
 }
 
