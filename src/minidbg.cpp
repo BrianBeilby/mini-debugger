@@ -93,6 +93,10 @@ uint64_t debugger::get_pc() {
     return get_register_value(m_pid, reg::rip);
 }
 
+uint64_t debugger::get_offset_pc() {
+    return offset_load_address(get_pc());
+}
+
 void debugger::set_pc(uint64_t pc) {
     set_register_value(m_pid, reg::rip, pc);
 }
@@ -186,6 +190,17 @@ void debugger::step_out() {
     if (should_remove_breakpoint) {
         remove_breakpoint(return_address);
     }
+}
+
+void debugger::step_in() {
+    auto line = get_line_entry_from_pc(get_offset_pc())->line;
+
+    while (get_line_entry_from_pc(get_offset_pc())->line == line) {
+        single_step_instruction_with_breakpoint_check();
+    }
+
+    auto line_entry = get_line_entry_from_pc(get_offset_pc());
+    print_source(line_entry->file->path, line_entry->line);
 }
 
 void debugger::initialise_load_address() {
