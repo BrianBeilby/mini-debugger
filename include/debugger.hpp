@@ -29,6 +29,7 @@ namespace minidbg {
         void single_step_instruction();
         void single_step_instruction_with_breakpoint_check();
         void step_out();
+        void step_in();
         void remove_breakpoint(std::intptr_t addr);
 
     private:
@@ -37,6 +38,7 @@ namespace minidbg {
         auto read_memory(uint64_t address) -> uint64_t;
         void write_memory(uint64_t address, uint64_t value);
         auto get_pc() -> uint64_t;
+        auto get_offset_pc() -> uint64_t;
         void set_pc(uint64_t pc);
         void step_over_breakpoint();
         void wait_for_signal();
