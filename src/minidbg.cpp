@@ -300,6 +300,12 @@ bool is_prefix(const std::string& s, const std::string& of) {
     return std::equal(s.begin(), s.end(), of.begin());
 }
 
+bool is_suffix(const std::string& s, const std::string& of) {
+    if (s.size() > of.size()) return false;
+    auto diff = of.size() - s.size();
+    return std::equal(s.begin(), s.end(), of.begin() + diff);
+}
+
 void debugger::handle_command(const std::string& line) {
     auto args = split(line,' ');
     auto command = args[0];
@@ -368,6 +374,21 @@ void debugger::set_breakpoint_at_function(const std::string& name) {
                 auto entry = get_line_entry_from_pc(low_pc);
                 ++entry;    // Skip prologue
                 set_breakpoint_at_address(offset_dwarf_address(entry->address));
+            }
+        }
+    }
+}
+
+void debugger::set_breakpoint_at_source_line(const std::string& file, unsigned line) {
+    for (const auto& cu : m_dwarf.compilation_units()) {
+        if (is_suffix(file, at_name(cu.root()))) {
+            const auto& lt = cu.get_line_table();
+
+            for (const auto& entry : lt) {
+                if (entry.is_stmt && entry.line == line) {
+                    set_breakpoint_at_address(offset_dwarf_address(entry.address));
+                    return;
+                }
             }
         }
     }
