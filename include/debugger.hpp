@@ -11,6 +11,30 @@
 #include "elf/elf++.hh"
 
 namespace minidbg {
+    enum class symbol_type {
+        notype,            // No type (e.g., absolute symbol)
+        object,            // Data object
+        func,              // Function entry point
+        section,           // Symbol is associated with a section
+        file,              // Source file associated with the
+    };
+
+    std::string to_string (symbol_type st) {
+        switch (st) {
+        case symbol_type::notype: return "notype";
+        case symbol_type::object: return "object";
+        case symbol_type::func: return "func";
+        case symbol_type::section: return "section";
+        case symbol_type::file: return "file";
+        }
+    }
+
+    struct symbol {
+        symbol_type type;
+        std::string name;
+        std::uintptr_t addr;
+    };
+
     class debugger {
     public:
         debugger (std::string prog_name, pid_t pid)
