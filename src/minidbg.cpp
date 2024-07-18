@@ -360,6 +360,19 @@ void debugger::set_breakpoint_at_address(std::intptr_t addr) {
     m_breakpoints[addr] = bp;
 }
 
+void debugger::set_breakpoint_at_function(const std::string& name) {
+    for (const auto& cu : m_dwarf.compilation_units()) {
+        for (const auto& die : cu.root()) {
+            if (die.has(dwarf::DW_AT::name) && at_name(die) == name) {
+                auto low_pc = at_low_pc(die);
+                auto entry = get_line_entry_from_pc(low_pc);
+                ++entry;    // Skip prologue
+                set_breakpoint_at_address(offset_dwarf_address(entry->address));
+            }
+        }
+    }
+}
+
 void debugger::run() {
     wait_for_signal();
     initialise_load_address();
