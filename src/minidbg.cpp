@@ -31,6 +31,24 @@ symbol_type to_symbol_type(elf::stt sym) {
     }
 };
 
+std::vector<symbol> debugger::lookup_symbol(const std::string& name) {
+    std::vector<symbol> syms;
+
+    for (auto &sec : m_elf.sections()) {
+        if (sec.get_hdr().type != elf::sht::symtab && sec.get_hdr().type != elf::sht::dynsym)
+            continue;
+
+        for (auto sym : sec.as_symtab()) {
+            if (sym.get_name() == name) {
+                auto &d = sym.get_data();
+                syms.push_back(symbol{to_symbol_type(d.type()), sym.get_name(), d.value});
+            }
+        }
+    }
+
+    return syms;
+}
+
 void debugger::initialise_load_address() {
    //If this is a dynamic library (e.g. PIE)
    if (m_elf.get_hdr().type == elf::et::dyn) {
@@ -364,6 +382,25 @@ void debugger::handle_command(const std::string& line) {
         single_step_instruction_with_breakpoint_check();
         auto line_entry = get_line_entry_from_pc(get_pc());
         print_source(line_entry->file->path, line_entry->line);
+    }
+    else if (is_prefix(command, "break")) {
+        if (args[1][0] == '0' && args[1][1] == 'x') {
+            std::string addr {args[1], 2};
+            set_breakpoint_at_address(std::stol(addr, 0, 16));
+        }
+        else if (args[1].find(':') != std::string::npos) {
+            auto file_and_line = split(args[1], ':');
+            set_breakpoint_at_source_line(file_and_line[0], std::stoi(file_and_line[1]));
+        }
+        else {
+            set_breakpoint_at_function(args[1]);
+        }
+    }
+    else if (is_prefix(command, "symbol")) {
+        auto syms = lookup_symbol(args[1]);
+        for (auto&& s : syms) {
+            std::cout << s.name << ' ' << to_string(s.type) << " 0x" << std::hex << s.addr << std::endl;
+        }
     }
     else {
         std::cerr << "Unknown command\n";
