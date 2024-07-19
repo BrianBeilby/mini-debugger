@@ -402,6 +402,9 @@ void debugger::handle_command(const std::string& line) {
             std::cout << s.name << ' ' << to_string(s.type) << " 0x" << std::hex << s.addr << std::endl;
         }
     }
+    else if (is_prefix(command, "backtrace")) {
+        print_backtrace();
+    }
     else {
         std::cerr << "Unknown command\n";
     }
@@ -447,6 +450,19 @@ void debugger::print_backtrace() {
         std::cout << "frame #" << frame_number++ << ": 0x" << dwarf::at_low_pc(func)
                   << ' ' << dwarf::at_name(func) << std::endl;
     };
+
+    auto current_func = get_function_from_pc(offset_load_address(get_pc()));
+    output_frame(current_func);
+
+    auto frame_pointer = get_register_value(m_pid, reg::rbp);
+    auto return_address = read_memory(frame_pointer + 8);
+
+    while (dwarf::at_name(current_func) != "main") {
+        current_func = get_function_from_pc(offset_load_address(return_address));
+        output_frame(current_func);
+        frame_pointer = read_memory(frame_pointer);
+        return_address = read_memory(frame_pointer + 8);
+    }
 }
 
 void debugger::run() {
