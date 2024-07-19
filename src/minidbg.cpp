@@ -442,6 +442,13 @@ void debugger::set_breakpoint_at_source_line(const std::string& file, unsigned l
     }
 }
 
+void debugger::print_backtrace() {
+    auto output_frame = [frame_number = 0] (auto&& func) mutable {
+        std::cout << "frame #" << frame_number++ << ": 0x" << dwarf::at_low_pc(func)
+                  << ' ' << dwarf::at_name(func) << std::endl;
+    };
+}
+
 void debugger::run() {
     wait_for_signal();
     initialise_load_address();
