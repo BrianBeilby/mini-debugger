@@ -58,6 +58,7 @@ namespace minidbg {
         void step_out();
         void remove_breakpoint(std::intptr_t addr);
         auto lookup_symbol(const std::string& name) -> std::vector<symbol>;
+        void print_backtrace();
 
     private:
         void handle_command(const std::string& line);
