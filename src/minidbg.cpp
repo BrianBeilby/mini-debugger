@@ -20,6 +20,28 @@
 
 using namespace minidbg;
 
+class ptrace_expr_context : public dwarf::expr_context {
+    public:
+        ptrace_expr_context (pid_t pid) : m_pid{pid} {}
+        dwarf::taddr reg (unsigned regnum) override {
+            return get_register_value_from_dwarf_register(m_pid, regnum);
+        }
+
+        dwarf::taddr pc() override {
+            struct user_regs_struct regs;
+            ptrace(PTRACE_GETREGS, m_pid, nullptr, &regs);
+            return regs.rip;
+        }
+
+        dwarf::taddr deref_size (dwarf::taddr address, unsigned size) override {
+            // TODO take into account size
+            return ptrace(PTRACE_PEEKDATA, m_pid, address, nullptr);
+        }
+
+    private:
+        pid_t m_pid;
+};
+
 symbol_type to_symbol_type(elf::stt sym) {
     switch (sym) {
     case elf::stt::notype: return symbol_type::notype;
