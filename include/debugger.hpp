@@ -17,7 +17,7 @@ namespace minidbg {
         func,              // Function entry point
         section,           // Symbol is associated with a section
         file,              // Source file associated with the
-    };
+    };                     // object file
 
     std::string to_string (symbol_type st) {
         switch (st) {
@@ -50,16 +50,17 @@ namespace minidbg {
         void set_breakpoint_at_function(const std::string& name);
         void set_breakpoint_at_source_line(const std::string& file, unsigned line);
         void dump_registers();
+        void print_backtrace();
+        void read_variables();
         void print_source(const std::string& file_name, unsigned line, unsigned n_lines_context=2);
+        auto lookup_symbol(const std::string& name) -> std::vector<symbol>;
+
         void single_step_instruction();
         void single_step_instruction_with_breakpoint_check();
         void step_in();
         void step_over();
         void step_out();
         void remove_breakpoint(std::intptr_t addr);
-        auto lookup_symbol(const std::string& name) -> std::vector<symbol>;
-        void print_backtrace();
-        void read_variables();
 
     private:
         void handle_command(const std::string& line);
